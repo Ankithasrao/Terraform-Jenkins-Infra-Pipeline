@@ -30,5 +30,9 @@ resource "aws_instance" "public_instance" {
   tags = {
     Name = var.name_tag
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
