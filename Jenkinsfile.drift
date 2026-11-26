@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        TF_IN_AUTOMATION  = 'true'
+    }
+
+    triggers {
+        cron('H 2 * * *')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init -input=false'
+            }
+        }
+
+        stage('Drift Detection') {
+            steps {
+                script {
+                    def result = sh(
+                        script: 'terraform plan -input=false -detailed-exitcode',
+                        returnStatus: true
+                    )
+
+                    if (result == 0) {
+                        echo '✅ No infrastructure drift detected.'
+                    } else if (result == 2) {
+                        echo '🚨 Infrastructure drift or configuration changes detected!'
+                    } else {
+                        error('❌ Terraform plan failed. Check the logs.')
+                    }
+                }
+            }
+        }
+    }
+}
